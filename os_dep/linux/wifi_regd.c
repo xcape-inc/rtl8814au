@@ -329,7 +329,7 @@ void rtw_regd_apply_flags(struct wiphy *wiphy)
 			ch->flags |= IEEE80211_CHAN_NO_IR;
 			#endif
 		}
-		#endif CONFIG_DFS
+		#endif // CONFIG_DFS
 	}
 */
 }

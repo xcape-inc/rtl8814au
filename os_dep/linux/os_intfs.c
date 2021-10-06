@@ -126,7 +126,7 @@ MODULE_PARM_DESC(rtw_wow_lps_1t1r, "The default WOW LPS 1T1R setting");
 #endif
 #endif /* CONFIG_WOWLAN */
 
-/* LPS: 
+/* LPS:
  * rtw_smart_ps = 0 => TX: pwr bit = 1, RX: PS_Poll
  * rtw_smart_ps = 1 => TX: pwr bit = 0, RX: PS_Poll
  * rtw_smart_ps = 2 => TX: pwr bit = 0, RX: NullData with pwr bit = 0
@@ -135,8 +135,8 @@ int rtw_smart_ps = 2;
 
 int rtw_max_bss_cnt = 0;
 module_param(rtw_max_bss_cnt, int, 0644);
-#ifdef CONFIG_WMMPS_STA	
-/* WMMPS: 
+#ifdef CONFIG_WMMPS_STA
+/* WMMPS:
  * rtw_smart_ps = 0 => Only for fw test
  * rtw_smart_ps = 1 => Refer to Beacon's TIM Bitmap
  * rtw_smart_ps = 2 => Don't refer to Beacon's TIM Bitmap
@@ -148,6 +148,10 @@ int rtw_check_fw_ps = 1;
 
 #ifdef CONFIG_TX_EARLY_MODE
 int rtw_early_mode = 1;
+#endif
+
+#ifdef CONFIG_SW_LED
+int rtw_led_ctrl = 1; // default to normal blink
 #endif
 
 int rtw_usb_rxagg_mode = 2;/* RX_AGG_DMA=1, RX_AGG_USB=2 */
@@ -204,7 +208,7 @@ int rtw_uapsd_ac_enable = 0x0;
 	/*PHYDM API, must enable by default*/
 	int rtw_pwrtrim_enable = 1;
 #else
-	int rtw_pwrtrim_enable = 0; /* Default Enalbe  power trim by efuse config */
+	int rtw_pwrtrim_enable = 0; /* Default Enable power trim by efuse config */
 #endif
 
 #if CONFIG_TX_AC_LIFETIME
@@ -569,6 +573,12 @@ module_param(rtw_pci_aspm_enable, int, 0644);
 #ifdef CONFIG_TX_EARLY_MODE
 module_param(rtw_early_mode, int, 0644);
 #endif
+
+#ifdef CONFIG_SW_LED
+module_param(rtw_led_ctrl, int, 0644);
+MODULE_PARM_DESC(rtw_led_ctrl,"Led Control: 0=Always off, 1=Normal blink, 2=Always on");
+#endif
+
 #ifdef CONFIG_ADAPTOR_INFO_CACHING_FILE
 char *rtw_adaptor_info_caching_file_path = "/data/misc/wifi/rtw_cache";
 module_param(rtw_adaptor_info_caching_file_path, charp, 0644);
@@ -984,7 +994,7 @@ static void rtw_regsty_load_tx_ac_lifetime(struct registry_priv *regsty)
 			conf->en = parm[0] & 0xF;
 			conf->vo_vi = parm[1];
 			conf->be_bk = parm[2];
-		}	
+		}
 	}
 }
 #endif
@@ -1206,6 +1216,9 @@ uint loadparam(_adapter *padapter)
 
 #ifdef CONFIG_TX_EARLY_MODE
 	registry_par->early_mode = (u8)rtw_early_mode;
+#endif
+#ifdef CONFIG_SW_LED
+	registry_par->led_ctrl = (u8)rtw_led_ctrl;
 #endif
 	registry_par->lowrate_two_xmit = (u8)rtw_lowrate_two_xmit;
 	registry_par->rf_path = (u8)rtw_rf_path; /*rf_config/rtw_rf_config*/
@@ -1561,7 +1574,7 @@ static u16 rtw_select_queue(struct net_device *dev, struct sk_buff *skb
 	#else
 	, void *accel_priv
 	#endif
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0) & LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+	#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)))
 	, select_queue_fallback_t fallback
 	#endif
 #endif
@@ -1910,9 +1923,11 @@ int rtw_os_ndev_register(_adapter *adapter, const char *name)
 	rtw_init_netdev_name(ndev, name);
 
 	_rtw_memcpy(ndev->dev_addr, adapter_mac_addr(adapter), ETH_ALEN);
-#if defined(CONFIG_NET_NS)
+
+#ifdef CONFIG_NET_NS
 	dev_net_set(ndev, wiphy_net(adapter_to_wiphy(adapter)));
-#endif //defined(CONFIG_NET_NS)
+#endif //CONFIG_NET_NS
+
 
 	/* Tell the network stack we exist */
 
@@ -1955,10 +1970,6 @@ void rtw_os_ndev_unregister(_adapter *adapter)
 
 	netdev = adapter->pnetdev;
 
-#if defined(CONFIG_IOCTL_CFG80211)
-	rtw_cfg80211_ndev_res_unregister(adapter);
-#endif
-
 	if ((adapter->DriverState != DRIVER_DISAPPEAR) && netdev) {
 		struct dvobj_priv *dvobj = adapter_to_dvobj(adapter);
 		u8 rtnl_lock_needed = rtw_rtnl_lock_needed(dvobj);
@@ -1968,6 +1979,10 @@ void rtw_os_ndev_unregister(_adapter *adapter)
 		else
 			unregister_netdevice(netdev);
 	}
+
+#if defined(CONFIG_IOCTL_CFG80211)
+	rtw_cfg80211_ndev_res_unregister(adapter);
+#endif
 
 #if defined(CONFIG_IOCTL_CFG80211) && !defined(RTW_SINGLE_WIPHY)
 #ifdef CONFIG_RFKILL_POLL
@@ -2406,7 +2421,7 @@ struct dvobj_priv *devobj_init(void)
 	pdvobj->tpt_mode = 0;
 	pdvobj->edca_be_ul = 0x5ea42b;
 	pdvobj->edca_be_dl = 0x00a42b;
-#endif 
+#endif
 	pdvobj->scan_deny = _FALSE;
 
 	return pdvobj;
@@ -3555,7 +3570,7 @@ int _netdev_open(struct net_device *pnetdev)
 	}
 	#endif /*CONFIG_AUTOSUSPEND*/
 
-	if (!rtw_is_hw_init_completed(padapter)) { // ips 
+	if (!rtw_is_hw_init_completed(padapter)) { // ips
 		rtw_clr_surprise_removed(padapter);
 		rtw_clr_drv_stopped(padapter);
 		RTW_ENABLE_FUNC(padapter, DF_RX_BIT);
@@ -3577,7 +3592,7 @@ int _netdev_open(struct net_device *pnetdev)
 		{
 	#ifdef CONFIG_BT_COEXIST_SOCKET_TRX
 			_adapter *prim_adpt = GET_PRIMARY_ADAPTER(padapter);
-		
+
 			if (prim_adpt && (_TRUE == prim_adpt->EEPROMBluetoothCoexist)) {
 				rtw_btcoex_init_socket(prim_adpt);
 				prim_adpt->coex_info.BtMgnt.ExtConfig.HCIExtensionVer = 0x04;
@@ -3609,7 +3624,7 @@ int _netdev_open(struct net_device *pnetdev)
 		rtw_cfg80211_init_wiphy(padapter);
 		rtw_cfg80211_init_wdev_data(padapter);
 		#endif
-		rtw_netif_carrier_on(pnetdev);  /* call this func when rtw_joinbss_event_callback return success */
+		rtw_netif_carrier_on(pnetdev); /* call this func when rtw_joinbss_event_callback return success */
 		rtw_netif_wake_queue(pnetdev);
 
 		#ifdef CONFIG_BR_EXT
@@ -3741,7 +3756,7 @@ int _netdev_open(struct net_device *pnetdev)
 	rtw_set_pwr_state_check_timer(pwrctrlpriv);
 #endif
 
-	/* rtw_netif_carrier_on(pnetdev); */ /* call this func when rtw_joinbss_event_callback return success */
+	rtw_netif_carrier_on(pnetdev); /* call this func when rtw_joinbss_event_callback return success */
 	rtw_netif_wake_queue(pnetdev);
 
 #ifdef CONFIG_BR_EXT
@@ -3966,7 +3981,7 @@ int _pm_netdev_open(_adapter *padapter)
 	}
 	#endif /*CONFIG_AUTOSUSPEND*/
 
-	if (!rtw_is_hw_init_completed(padapter)) { // ips 
+	if (!rtw_is_hw_init_completed(padapter)) { // ips
 		rtw_clr_surprise_removed(padapter);
 		rtw_clr_drv_stopped(padapter);
 		status = rtw_hal_init(padapter);
@@ -4247,7 +4262,7 @@ static int route_dump(u32 *gw_addr , int *gw_index)
 	struct msghdr msg;
 	struct iovec iov;
 	struct sockaddr_nl nladdr;
-#ifdef set_fs
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 	mm_segment_t oldfs;
 #endif
 	char *pg;
@@ -4287,7 +4302,8 @@ static int route_dump(u32 *gw_addr , int *gw_index)
 	msg.msg_control = NULL;
 	msg.msg_controllen = 0;
 	msg.msg_flags = MSG_DONTWAIT;
-#ifdef set_fs
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
 #endif
@@ -4296,9 +4312,10 @@ static int route_dump(u32 *gw_addr , int *gw_index)
 #else
 	err = sock_sendmsg(sock, &msg, sizeof(req));
 #endif
-#ifdef set_fs
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 	set_fs(oldfs);
 #endif
+
 	if (err < 0)
 		goto out_sock;
 
@@ -4321,7 +4338,8 @@ restart:
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 		iov_iter_init(&msg.msg_iter, READ, &iov, 1, PAGE_SIZE);
 #endif
-#ifdef set_fs
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		oldfs = get_fs();
 		set_fs(KERNEL_DS);
 #endif
@@ -4330,7 +4348,7 @@ restart:
 #else
 		err = sock_recvmsg(sock, &msg, PAGE_SIZE, MSG_DONTWAIT);
 #endif
-#ifdef set_fs
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		set_fs(oldfs);
 #endif
 		if (err < 0)
@@ -4402,7 +4420,7 @@ done:
 		msg.msg_controllen = 0;
 		msg.msg_flags = MSG_DONTWAIT;
 
-#ifdef set_fs
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		oldfs = get_fs();
 		set_fs(KERNEL_DS);
 #endif
@@ -4411,9 +4429,10 @@ done:
 #else
 		err = sock_sendmsg(sock, &msg, sizeof(req));
 #endif
-#ifdef set_fs
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 		set_fs(oldfs);
 #endif
+
 		if (err > 0)
 			goto restart;
 	}
@@ -5069,7 +5088,7 @@ int rtw_resume_process_wow(_adapter *padapter)
 		rtw_mi_start_drv_threads(padapter);
 
 		rtw_mi_intf_start(padapter);
-		
+
 		if(registry_par->suspend_type == FW_IPS_DISABLE_BBRF && !check_fwstate(pmlmepriv, _FW_LINKED)) {
 			if (!rtw_is_surprise_removed(padapter)) {
 				rtw_hal_deinit(padapter);

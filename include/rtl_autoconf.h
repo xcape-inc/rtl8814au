@@ -71,7 +71,7 @@
 
 #define CONFIG_RF_POWER_TRIM
 
-#define CONFIG_DFS	0
+#define CONFIG_DFS	1
 
  /* #define CONFIG_SUPPORT_USB_INT */
  #ifdef CONFIG_SUPPORT_USB_INT
@@ -159,7 +159,7 @@
 
 #define CONFIG_RTW_LED
 #ifdef CONFIG_RTW_LED
-	#define CONFIG_RTW_SW_LED
+//	#define CONFIG_RTW_SW_LED
 	#ifdef CONFIG_RTW_SW_LED
 		/* #define CONFIG_RTW_LED_HANDLED_BY_CMD_THREAD */
 	#endif
@@ -292,7 +292,7 @@
 /*
  * Debug Related Config
  */
-#define DBG	0
+#define DBG	1
 
 #define DBG_CONFIG_ERROR_DETECT
 /* #define DBG_CONFIG_ERROR_DETECT_INT */
