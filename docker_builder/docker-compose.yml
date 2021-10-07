@@ -1,0 +1,9 @@
+# version: '3.9' # This now uses Compose Spec (https://github.com/compose-spec/compose-spec/blob/master/spec.md)
+services:
+  builder:
+    image: ${REGISTRY_URI:-}${DOCKER_NAMESPACE:-}dkms-build-env${IMAGE_VERSION:-:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ${SRC_DIR}:/tmp/src

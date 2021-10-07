@@ -21,4 +21,7 @@ modules.order
 /debian/rtl8814au-dkms.prerm.debhelper
 /debian/rtl8814au-dkms.substvars
 /debian/rtl8814au-dkms/
-/*.deb 
+/*.deb
+
+# docker stuff
+/docker_builder/.env 
