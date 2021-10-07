@@ -37,7 +37,7 @@ cd "${SCRIPT_DIR}"
 # build the .env file
 if [[ 'true' != "${SKIP_ENV_FILE:-}" ]]; then
   echo "REGISTRY_URI=ghcr.io/
-DOCKER_NAMESPACE=DOCKER_NAMESPACE/
+DOCKER_NAMESPACE=xcape-inc/
 SRC_DIR=${SCRIPT_DIR}
 IMAGE_VERSION=${IMAGE_VERSION:-}" > docker_builder/.env
 
