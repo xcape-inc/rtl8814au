@@ -1,3 +1,9 @@
+rtl8814au (5.8.5.1-35583.20191029-xcape1) unstable; urgency=medium
+
+  * Built with aircrack AND morrownr changes (https://github.com/morrownr/8814au/commit/32b6c9eb0e28ba16d9a44c327f320ee4a3302234 + https://github.com/aircrack-ng/rtl8814au/commit/bdf80b5a932d5267cd1aff66fee8ac244cd38777)
+
+ -- Gene Erik <support@xcapeinc.com>  Wed, 06 Oct 2021 15:59:37 -0800
+
 rtl8814au (5.8.5.1) unstable; urgency=medium
 
   * Fix kernel 5.6, proc_create_data takes "proc_ops" and not "file_operations" now

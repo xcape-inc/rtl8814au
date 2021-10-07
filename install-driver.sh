@@ -21,6 +21,7 @@ SCRIPT_VERSION="20210917"
 DRV_NAME="rtl8814au"
 DRV_VERSION="5.8.5.1"
 OPTIONS_FILE="8814au.conf"
+DEB_NAME="${DRV_NAME}-dkms_${DRV_VERSION}_all.deb"
 
 DRV_DIR="$(pwd)"
 KRNL_VERSION="$(uname -r)"
@@ -51,8 +52,11 @@ if [[ $# -gt 0 ]]; then
 			NoInstall)
 				NO_INSTALL=1 ;;
 			Deb)
-				BUILD_DEB=1 ;;
+				NO_INSTALL=1
+				BUILD_DEB=1
+				;;
 			DebInstall)
+				NO_INSTALL=1
 				BUILD_DEB=1
 				INSTALL_DEB=1
 				;;
@@ -80,7 +84,16 @@ fi
 echo "Starting build..."
 
 if [[ "${BUILD_DEB}" -eq 1 ]]; then
-	exec dpkg-buildpackage
+	dpkg-buildpackage -b -rfakeroot
+	if [[ "${INSTALL_DEB}" -eq 1 ]]; then
+		if [[ "${EUID}" -ne 0 ]]; then
+			exec sudo -E apt-get ${APT_OPTS:-} install "$(pwd)/../${DEB_NAME}"
+		else
+			exec apt-get ${APT_OPTS:-} install "$(pwd)/../${DEB_NAME}"
+		fi
+	else
+		exec cp "$(pwd)/../${DEB_NAME}" .
+	fi
 else
 	make
 fi
