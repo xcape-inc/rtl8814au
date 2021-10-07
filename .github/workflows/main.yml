@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   #IMAGE_NAME: ${{ github.repository }}
-  IMAGE_NAME: dkms-build-env
+  IMAGE_NAME: xcape-inc/dkms-build-env
 
 jobs:
   build-and-push-image:
