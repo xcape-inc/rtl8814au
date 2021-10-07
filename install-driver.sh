@@ -19,9 +19,24 @@ REAL_SCRIPT_NAME=$(basename "${REAL_SCRIPT_PATH}")
 SCRIPT_VERSION="20210917"
 
 DRV_NAME="rtl8814au"
-DRV_VERSION="5.8.5.1"
+DRV_VERSION=$(sed -n "s/^#define DRIVERVERSION\\t\"v\\([^\"][^\"]*\\)\"\$/\\1/p" include/rtw_version.h)
+DEB_VERSION=$(sed -n "s/^[^(]*(\\([^)]*\\)).*/\\1/p" debian/changelog | head -1)
+# TODO: check if the deb_version starts with the drv_version
 OPTIONS_FILE="8814au.conf"
-DEB_NAME="${DRV_NAME}-dkms_${DRV_VERSION}_all.deb"
+TARGET_ARCH=${TARGET_ARCH:-$(uname -m)}
+
+# fix ARCH name to deb package style
+case "${TARGET_ARCH}" in
+	x86_64)
+		TARGET_ARCH=amd64
+		;;
+	*)
+		# Do nothing if unknown
+		:;
+		;;
+esac
+
+DEB_NAME="${DRV_NAME}-dkms_${DEB_VERSION}_${TARGET_ARCH}.deb"
 
 DRV_DIR="$(pwd)"
 KRNL_VERSION="$(uname -r)"
@@ -40,7 +55,9 @@ show_help () {
 	echo "       -h|--help - Show help"
 }
 
-echo "Running ${SCRIPT_NAME} version ${SCRIPT_VERSION}"
+echo "Running ${SCRIPT_NAME} version ${SCRIPT_VERSION} for driver version ${DRV_VERSION} for ${TARGET_ARCH}"
+
+# TODO: patch the config base on the arch
 
 if [[ $# -gt 0 ]]; then
 	CAPTURED_PARAMS=( "$@" )
@@ -83,21 +100,25 @@ fi
 
 echo "Starting build..."
 
+# Build / Install as a deb package
 if [[ "${BUILD_DEB}" -eq 1 ]]; then
+	echo "Output deb: ${DEB_NAME}"
+	rm -f "${DEB_NAME}"
 	dpkg-buildpackage -b -rfakeroot
+	cp "$(pwd)/../${DEB_NAME}" .
 	if [[ "${INSTALL_DEB}" -eq 1 ]]; then
 		if [[ "${EUID}" -ne 0 ]]; then
 			exec sudo -E apt-get ${APT_OPTS:-} install "$(pwd)/../${DEB_NAME}"
 		else
 			exec apt-get ${APT_OPTS:-} install "$(pwd)/../${DEB_NAME}"
 		fi
-	else
-		exec cp "$(pwd)/../${DEB_NAME}" .
+		exec echo "The driver was installed successfully."
 	fi
-else
-	make
+	exec echo "The driver was built successfully."
 fi
 
+// Compile the actual kernel module
+make
 if [[ "${NO_INSTALL}" -ne 1 ]]; then
 	echo "Starting installation..."
 	if [[ "${EUID}" -ne 0 ]]; then

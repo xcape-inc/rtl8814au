@@ -9,4 +9,16 @@ modules.order
 .cache.mk
 *.mod
 *.o.d
-*.c.orig 
+*.c.orig
+
+# deb package build stuff
+/debian/.debhelper/
+/debian/files
+/debian/rtl8814au-dkms.debhelper.log
+/debian/rtl8814au-dkms.dkms.debhelper
+/debian/rtl8814au-dkms.postinst.debhelper
+/debian/rtl8814au-dkms.postrm.debhelper
+/debian/rtl8814au-dkms.prerm.debhelper
+/debian/rtl8814au-dkms.substvars
+/debian/rtl8814au-dkms/
+/*.deb 
