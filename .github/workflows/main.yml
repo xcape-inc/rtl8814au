@@ -118,5 +118,6 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: debs
-          path: *.deb
+          path: |
+            *.deb
           retention-days: 5
