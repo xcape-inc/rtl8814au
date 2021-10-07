@@ -47,7 +47,10 @@ jobs:
 
       - name: Set uid:gid
         id: uidgid
-        run: echo "::set-output name=uid_gid::$(id -u):$(id -g)"
+        run: |
+          echo "::set-output name=uid::$(id -u)"
+          echo "::set-output name=gid::$(id -g)"
+          echo "::set-output name=uid_gid::$(id -u):$(id -g)"
 
       - name: Current uid:gid
         run: echo ${{ steps.uidgid.outputs.uid_gid }}
@@ -97,6 +100,8 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-server-cache-new
           # TODO: need to add the timestamp parameter
           build-args: |
+            USER_UID=${{ steps.uidgid.outputs.uid }}
+            USER_GID=${{ steps.uidgid.outputs.gid }}
             VERSION=${{ steps.get_versions.outputs.cur_version }}
             LONG_FORM_VERSION=${{ steps.get_versions.outputs.long_form_cur_version }}
 
@@ -111,7 +116,7 @@ jobs:
       - name: Build and test install package (amd64)
         run: |
           export IMAGE_VERSION=:sha-${{ steps.shortsha.outputs.sha_short }}
-          ./docker_build.sh
+          FORCE_PULL=true ./docker_build.sh
 
       # artifact package to github
       - name: Store image artifact

@@ -37,7 +37,7 @@ cd "${SCRIPT_DIR}"
 # build the .env file
 if [[ 'true' != "${SKIP_ENV_FILE:-}" ]]; then
   echo "REGISTRY_URI=ghcr.io/
-DOCKER_NAMESPACE=geneerik/
+DOCKER_NAMESPACE=DOCKER_NAMESPACE/
 SRC_DIR=${SCRIPT_DIR}
 IMAGE_VERSION=${IMAGE_VERSION:-}" > docker_builder/.env
 
@@ -49,7 +49,9 @@ cd docker_builder
 COMPOSE_FILE_PATH=docker-compose.yml
 
 # try to pull the associated docker images from the remote repo; will build otherwise
-if [[ 'true' != "${SKIP_PULL:-}" ]]; then
+if [[ 'true' == "${FORCE_PULL:-}" ]]; then
+  docker-compose -f "${COMPOSE_FILE_PATH}" ${COMPOSE_DEBUG_FLAGS:-} pull
+elif [[ 'true' != "${SKIP_PULL:-}" ]]; then
   echo "** trying to pull"
   docker-compose -f "${COMPOSE_FILE_PATH}" ${COMPOSE_DEBUG_FLAGS:-} pull || true
   echo "** done trying to pull"
